@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quiet Express</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky-top: #8FD3E8;
+    --sky-bottom: #D9F2E6;
+    --hill-far: #9FCB8E;
+    --hill-near: #6FAE63;
+    --track: #6B5544;
+    --track-tie: #4A3B2E;
+    --train-red: #E1543D;
+    --train-dark: #A8341F;
+    --cab-cream: #FBEFD9;
+    --station-wood: #8C6A4E;
+    --ink: #3A3226;
+    --paper: #FFFBF2;
+    --gold: #F2B84B;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Baloo 2', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --paper: #FFFBF2; --ink: #3A3226; }
+  }
+
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: clamp(12px, 3vw, 24px);
+    padding-top: calc(clamp(12px,3vw,24px) + env(safe-area-inset-top, 0px));
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-size: clamp(24px, 6vw, 32px);
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: 0.3px;
+  }
+  .gear {
+    background: none;
+    border: 2px solid var(--ink);
+    color: var(--ink);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .gear:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+  .scene {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    background: linear-gradient(var(--sky-top), var(--sky-bottom));
+    height: clamp(260px, 55vw, 380px);
+    box-shadow: 0 6px 0 rgba(58,50,38,0.15);
+  }
+  .sun {
+    position: absolute;
+    top: 8%;
+    right: 10%;
+    width: 15%;
+    aspect-ratio: 1;
+    background: var(--gold);
+    border-radius: 50%;
+    opacity: 0.9;
+  }
+  .hill-far {
+    position: absolute;
+    bottom: 22%;
+    left: -5%;
+    width: 60%;
+    height: 40%;
+    background: var(--hill-far);
+    border-radius: 50% 50% 0 0;
+  }
+  .hill-far.two { left: 45%; width: 70%; height: 34%; }
+  .hill-near {
+    position: absolute;
+    bottom: 12%;
+    left: -10%;
+    width: 130%;
+    height: 22%;
+    background: var(--hill-near);
+    border-radius: 50% 50% 0 0;
+  }
+  .track {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 14%;
+    background: var(--track);
+  }
+  .ties { position: absolute; inset: 0; display: flex; align-items: center; }
+  .tie {
+    width: 8%;
+    min-width: 14px;
+    height: 60%;
+    background: var(--track-tie);
+    margin-right: 4%;
+    border-radius: 2px;
+  }
+  .station {
+    position: absolute;
+    right: 3%;
+    bottom: 12%;
+    width: 22%;
+    height: 46%;
+  }
+  .station-roof {
+    position: absolute; top: 0; left: -8%; width: 116%; height: 30%;
+    background: var(--train-dark);
+    clip-path: polygon(0 100%, 50% 0, 100% 100%);
+  }
+  .station-body {
+    position: absolute; bottom: 0; left: 0; width: 100%; height: 75%;
+    background: var(--station-wood);
+    border-radius: 4px 4px 0 0;
+  }
+  .station-sign {
+    position: absolute; top: 34%; left: 8%; width: 84%; height: 22%;
+    background: var(--paper);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(8px, 1.6vw, 12px);
+    font-weight: 700;
+    text-align: center;
+    padding: 2px;
+  }
+
+  .train {
+    position: absolute;
+    bottom: 12%;
+    left: 2%;
+    width: 26%;
+    transition: left 0.4s ease-out;
+    will-change: left;
+  }
+  .train.shake { animation: shake 0.35s; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px) rotate(-1deg); }
+    75% { transform: translateX(4px) rotate(1deg); }
+  }
+  .train-svg { width: 100%; display: block; overflow: visible; }
+
+  .steam-puff {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.85);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .steam-puff.calm { animation: puffCalm 2.2s ease-out forwards; }
+  .steam-puff.loud { background: rgba(225,84,61,0.55); animation: puffLoud 0.9s ease-out forwards; }
+  @keyframes puffCalm {
+    0% { opacity: 0.85; transform: translateY(0) scale(0.6); }
+    100% { opacity: 0; transform: translateY(-60px) scale(1.6); }
+  }
+  @keyframes puffLoud {
+    0% { opacity: 0.9; transform: translateY(0) scale(0.7); }
+    100% { opacity: 0; transform: translateY(-30px) scale(1.8); }
+  }
+
+  .status {
+    margin-top: 14px;
+    text-align: center;
+    font-size: clamp(18px, 4.5vw, 22px);
+    font-weight: 700;
+    min-height: 30px;
+  }
+  .status.calm { color: var(--hill-near); }
+  .status.loud { color: var(--train-dark); }
+
+  .stage {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+  .stage .scene { flex: 1; min-width: 0; }
+  .meter {
+    width: 46px;
+    flex-shrink: 0;
+    border-radius: 14px;
+    background: rgba(58,50,38,0.08);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .meter-fill {
+    width: 100%;
+    height: 0%;
+    background: var(--hill-near);
+    transition: height 0.08s linear, background-color 0.15s;
+    border-radius: 14px 14px 0 0;
+  }
+  .meter-fill.loud { background: var(--train-dark); }
+  .meter-zone {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: rgba(111,174,99,0.28);
+    z-index: 1;
+  }
+  .meter-threshold {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    height: 3px;
+    background: var(--ink);
+    opacity: 0.55;
+    border-radius: 2px;
+  }
+  .meter-label {
+    position: absolute;
+    top: 6px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink);
+    z-index: 2;
+  }
+
+  .progress-track {
+    margin-top: 6px;
+    height: 14px;
+    background: rgba(58,50,38,0.12);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--hill-near);
+    border-radius: 8px;
+    transition: width 0.3s ease-out;
+  }
+
+  .controls {
+    margin-top: 18px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+  .btn {
+    font-family: inherit;
+    font-size: clamp(16px, 4vw, 19px);
+    font-weight: 700;
+    padding: 12px 28px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    color: var(--paper);
+    background: var(--train-red);
+    box-shadow: 0 4px 0 var(--train-dark);
+  }
+  .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--train-dark); }
+  .btn.secondary { background: var(--hill-near); box-shadow: 0 4px 0 #4C7C42; }
+  .btn.secondary:active { box-shadow: 0 2px 0 #4C7C42; }
+
+  .panel {
+    display: none;
+    margin-top: 16px;
+    background: rgba(58,50,38,0.06);
+    border-radius: 16px;
+    padding: 16px;
+  }
+  .panel.open { display: block; }
+  .panel label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .sens-row { display: flex; gap: 8px; }
+  .sens-btn {
+    flex: 1;
+    font-family: inherit;
+    font-weight: 700;
+    padding: 10px 6px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: var(--paper);
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .sens-btn.active { border-color: var(--train-red); background: #FDE9E3; }
+
+  .note {
+    margin-top: 14px;
+    font-size: 14px;
+    text-align: center;
+    opacity: 0.7;
+    line-height: 1.5;
+  }
+
+  .celebrate {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,251,242,0.9);
+    text-align: center;
+    padding: 16px;
+  }
+  .celebrate.show { display: flex; }
+  .celebrate-inner { font-size: clamp(18px, 5vw, 24px); font-weight: 800; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <h1>Quiet Express</h1>
+    <button class="gear" id="gearBtn" aria-label="Settings" aria-expanded="false">⚙</button>
+  </div>
+
+  <div class="stage">
+  <div class="scene" id="scene">
+    <div class="sun"></div>
+    <div class="hill-far"></div>
+    <div class="hill-far two"></div>
+    <div class="hill-near"></div>
+    <div class="station">
+      <div class="station-roof"></div>
+      <div class="station-body"></div>
+      <div class="station-sign">Bear<br>Station</div>
+    </div>
+    <div class="track">
+      <div class="ties" id="ties"></div>
+    </div>
+    <div class="train" id="train">
+      <svg class="train-svg" viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
+        <rect x="60" y="35" width="120" height="55" rx="10" fill="var(--train-red)"/>
+        <rect x="60" y="10" width="45" height="30" rx="6" fill="var(--train-red)"/>
+        <rect x="66" y="16" width="33" height="18" rx="3" fill="var(--cab-cream)"/>
+        <circle cx="90" cy="95" r="15" fill="var(--track-tie)"/>
+        <circle cx="150" cy="95" r="15" fill="var(--track-tie)"/>
+        <circle cx="90" cy="95" r="6" fill="#D9CBB0"/>
+        <circle cx="150" cy="95" r="6" fill="#D9CBB0"/>
+        <rect x="30" y="55" width="34" height="20" rx="4" fill="var(--train-dark)"/>
+        <rect x="20" y="45" width="14" height="30" rx="5" fill="var(--train-dark)"/>
+        <circle cx="27" cy="95" r="12" fill="var(--track-tie)"/>
+        <circle cx="27" cy="95" r="5" fill="#D9CBB0"/>
+        <rect x="150" y="40" width="10" height="14" rx="2" fill="var(--cab-cream)"/>
+      </svg>
+      <div id="steamZone" style="position:absolute; top:-10px; left:8%; width:20px; height:20px;"></div>
+    </div>
+    <div class="celebrate" id="celebrate">
+      <div class="celebrate-inner">🚂 Choo choo! You made it to Bear Station with your quiet voice!</div>
+    </div>
+  </div>
+  <div class="meter" id="meter" aria-label="Volume meter">
+    <div class="meter-label" id="meterLabel">—</div>
+    <div class="meter-zone" id="meterZone"></div>
+    <div class="meter-threshold" id="meterThreshold"></div>
+    <div class="meter-fill" id="meterFill"></div>
+  </div>
+  </div>
+
+  <div class="status" id="status">Tap Start, then talk in your regular voice.</div>
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+  <div class="controls">
+    <button class="btn" id="startBtn">Start</button>
+    <button class="btn secondary" id="resetBtn" style="display:none;">Restart</button>
+  </div>
+
+  <div class="panel" id="panel">
+    <label>How sensitive should the train be?</label>
+    <div class="sens-row">
+      <button class="sens-btn" data-level="0.22">Gentle</button>
+      <button class="sens-btn active" data-level="0.15">Medium</button>
+      <button class="sens-btn" data-level="0.10">Strict</button>
+    </div>
+  </div>
+
+  <p class="note" id="modeNote">Uses your device's microphone only while this page is open. Nothing is recorded or sent anywhere — it just checks how loud things are, right in the browser.</p>
+</div>
+
+<script>
+(function () {
+  var startBtn = document.getElementById('startBtn');
+  var resetBtn = document.getElementById('resetBtn');
+  var gearBtn = document.getElementById('gearBtn');
+  var panel = document.getElementById('panel');
+  var statusEl = document.getElementById('status');
+  var progressFill = document.getElementById('progressFill');
+  var train = document.getElementById('train');
+  var scene = document.getElementById('scene');
+  var celebrate = document.getElementById('celebrate');
+  var ties = document.getElementById('ties');
+
+  for (var i = 0; i < 14; i++) {
+    var t = document.createElement('div');
+    t.className = 'tie';
+    ties.appendChild(t);
+  }
+
+  var THRESHOLD = 0.15;
+  var SPEAKING_FLOOR = 0.03; // below this, treat the room as background noise/silence
+  var meterFill = document.getElementById('meterFill');
+  var meterLabel = document.getElementById('meterLabel');
+  var meterThreshold = document.getElementById('meterThreshold');
+  var meterZone = document.getElementById('meterZone');
+
+  function rmsToPercent(rms) {
+    var db = 20 * Math.log10(Math.max(rms, 0.00001));
+    var clamped = Math.max(-60, Math.min(0, db));
+    return (clamped + 60) / 60 * 100;
+  }
+  function updateThresholdMarker() {
+    var topPct = rmsToPercent(THRESHOLD);
+    var floorPct = rmsToPercent(SPEAKING_FLOOR);
+    meterThreshold.style.bottom = topPct + '%';
+    meterZone.style.bottom = floorPct + '%';
+    meterZone.style.height = Math.max(0, topPct - floorPct) + '%';
+  }
+
+  try {
+    var savedT = localStorage.getItem('qe_threshold');
+    if (savedT) THRESHOLD = parseFloat(savedT);
+  } catch (e) {}
+  document.querySelectorAll('.sens-btn').forEach(function (b) {
+    if (parseFloat(b.dataset.level) === THRESHOLD) b.classList.add('active');
+    else b.classList.remove('active');
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.sens-btn').forEach(function (x) { x.classList.remove('active'); });
+      b.classList.add('active');
+      THRESHOLD = parseFloat(b.dataset.level);
+      try { localStorage.setItem('qe_threshold', THRESHOLD); } catch (e) {}
+      updateThresholdMarker();
+    });
+  });
+  updateThresholdMarker();
+
+  gearBtn.addEventListener('click', function () {
+    var open = panel.classList.toggle('open');
+    gearBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+
+  var audioCtx = null, analyser = null, dataArray = null, source = null, stream = null;
+  var running = false;
+  var progress = 0; // 0 to 100
+  var maxLeft = 68; // percent, leaves room for station
+  var rafId = null;
+
+  function setTrainPosition() {
+    var leftPct = 2 + (progress / 100) * maxLeft;
+    train.style.left = leftPct + '%';
+  }
+
+  function spawnPuff(loud) {
+    var puff = document.createElement('div');
+    puff.className = 'steam-puff ' + (loud ? 'loud' : 'calm');
+    var size = loud ? 14 : (10 + Math.random() * 8);
+    puff.style.width = size + 'px';
+    puff.style.height = size + 'px';
+    var trainRect = train.getBoundingClientRect();
+    var sceneRect = scene.getBoundingClientRect();
+    var x = trainRect.left - sceneRect.left + trainRect.width * 0.15 + (Math.random() * 10 - 5);
+    var y = trainRect.top - sceneRect.top - 4;
+    puff.style.left = x + 'px';
+    puff.style.top = y + 'px';
+    scene.appendChild(puff);
+    setTimeout(function () { puff.remove(); }, loud ? 950 : 2300);
+  }
+
+  var lastPuffTime = 0;
+  var isLoudNow = false;
+  var smoothedRms = 0;
+  var loudStreak = 0;
+  var LOUD_FRAMES_NEEDED = 6; // ~100ms of sustained loudness before it counts
+
+  function tick() {
+    if (!running) return;
+    analyser.getByteTimeDomainData(dataArray);
+    var sumSquares = 0;
+    for (var i = 0; i < dataArray.length; i++) {
+      var v = (dataArray[i] - 128) / 128;
+      sumSquares += v * v;
+    }
+    var rawRms = Math.sqrt(sumSquares / dataArray.length);
+    smoothedRms = smoothedRms + 0.35 * (rawRms - smoothedRms);
+    var rms = smoothedRms;
+    var now = performance.now();
+
+    var isLoudRaw = rms > THRESHOLD;
+    loudStreak = isLoudRaw ? loudStreak + 1 : 0;
+    isLoudNow = loudStreak >= LOUD_FRAMES_NEEDED;
+    var isSpeaking = rms > SPEAKING_FLOOR && !isLoudNow;
+
+    var db = 20 * Math.log10(Math.max(rms, 0.00001));
+    meterFill.style.height = rmsToPercent(rms) + '%';
+    meterLabel.textContent = Math.round(db) + ' dB';
+    meterFill.classList.toggle('loud', isLoudNow);
+
+    if (isLoudNow) {
+      statusEl.textContent = 'Whoa, too loud! Back to the start — try your regular voice.';
+      statusEl.className = 'status loud';
+      if (progress > 0) {
+        progress = 0;
+        progressFill.style.width = '0%';
+        setTrainPosition();
+      }
+      if (now - lastPuffTime > 250) { spawnPuff(true); lastPuffTime = now; }
+      if (!train.classList.contains('shake')) {
+        train.classList.add('shake');
+        setTimeout(function () { train.classList.remove('shake'); }, 350);
+      }
+    } else if (isSpeaking) {
+      statusEl.textContent = 'Chugging along nicely!';
+      statusEl.className = 'status calm';
+      progress = Math.min(100, progress + 0.35);
+      progressFill.style.width = progress + '%';
+      setTrainPosition();
+      if (now - lastPuffTime > 550) { spawnPuff(false); lastPuffTime = now; }
+      if (progress >= 100) {
+        finish();
+        return;
+      }
+    } else {
+      statusEl.textContent = 'Say something in your regular voice to move the train.';
+      statusEl.className = 'status';
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function finish() {
+    running = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    celebrate.classList.add('show');
+    statusEl.textContent = 'You did it!';
+    statusEl.className = 'status calm';
+    startBtn.style.display = 'none';
+    resetBtn.style.display = 'inline-block';
+  }
+
+  function stopStream() {
+    if (stream) {
+      stream.getTracks().forEach(function (t) { t.stop(); });
+      stream = null;
+    }
+    if (audioCtx) {
+      audioCtx.close().catch(function () {});
+      audioCtx = null;
+    }
+  }
+
+  startBtn.addEventListener('click', function () {
+    if (running) return;
+    statusEl.textContent = 'Listening... talk in your regular voice!';
+    statusEl.className = 'status';
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(function (s) {
+        stream = s;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 1024;
+        dataArray = new Uint8Array(analyser.fftSize);
+        source = audioCtx.createMediaStreamSource(stream);
+        source.connect(analyser);
+        running = true;
+        startBtn.textContent = 'Listening...';
+        startBtn.disabled = true;
+        rafId = requestAnimationFrame(tick);
+      })
+      .catch(function () {
+        statusEl.textContent = 'Could not access the microphone. Check your browser permission and try again.';
+        statusEl.className = 'status loud';
+      });
+  });
+
+  resetBtn.addEventListener('click', function () {
+    progress = 0;
+    progressFill.style.width = '0%';
+    setTrainPosition();
+    celebrate.classList.remove('show');
+    statusEl.textContent = 'Listening... talk in your regular voice!';
+    statusEl.className = 'status';
+    if (!running) {
+      running = true;
+      rafId = requestAnimationFrame(tick);
+    }
+  });
+
+  setTrainPosition();
+})();
+</script>
+</body>
+</html>
